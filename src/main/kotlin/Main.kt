@@ -113,7 +113,7 @@ enum class Relevancia {
     }
 }
 
-open abstract class Produto(val nome: String, val preco_compra: Double, val preco_venda: Double, var cod: String){
+abstract class Produto(val nome: String, val preco_compra: Double, val preco_venda: Double, var cod: String){
     abstract fun atendeAosCriterios(info: InfoBusca): Boolean
 }
 
@@ -144,7 +144,7 @@ class Roupa(
     }
 
     override fun toString(): String {
-        var res: String = ""
+        var res = ""
 
         res += "Codigo; ${this.cod}, "
         res += "Nome: ${this.nome}, "
@@ -194,7 +194,7 @@ class Eletronico(
     }
 
     override fun toString(): String {
-        var res: String = ""
+        var res = ""
 
         res += "Código: ${this.cod}, "
         res += "Nome: ${this.nome}, "
@@ -253,7 +253,7 @@ class Colecionavel(
     }
 
     override fun toString(): String {
-        var res: String = ""
+        var res = ""
 
         res += "Código: ${this.cod}, "
         res += "Nome: ${this.nome}, "
@@ -282,8 +282,8 @@ class Colecionavel(
 data class InfoEstoque(var prod: Produto, var qtd: Int)
 data class InfoBalancete(var compras: Double, var vendas: Double, var balancete: Double)
 
-fun leCompras(path: String, estoque_mp: MutableMap<String, InfoEstoque>, balancete_dt: InfoBalancete) {
-    var comprasFilePath = path + "/compras.csv"
+fun leCompras(path: String, estoqueMp: MutableMap<String, InfoEstoque>, balanceteDt: InfoBalancete) {
+    val comprasFilePath = "$path/compras.csv"
 
     File(comprasFilePath).bufferedReader().useLines { lines ->
         for (line in lines.drop(1)) {
@@ -327,14 +327,14 @@ fun leCompras(path: String, estoque_mp: MutableMap<String, InfoEstoque>, balance
             }
 
             p?.let {
-                if (!estoque_mp.containsKey(p.cod)) {
-                    estoque_mp[p.cod] = InfoEstoque(p, qtd)
+                if (!estoqueMp.containsKey(p.cod)) {
+                    estoqueMp[p.cod] = InfoEstoque(p, qtd)
                 } else {
-                    estoque_mp[p.cod]!!.qtd = qtd + estoque_mp[p.cod]!!.qtd
+                    estoqueMp[p.cod]!!.qtd = qtd + estoqueMp[p.cod]!!.qtd
                 }
 
-                balancete_dt.compras += qtd * p.preco_compra
-                balancete_dt.balancete -= qtd * p.preco_compra
+                balanceteDt.compras += qtd * p.preco_compra
+                balanceteDt.balancete -= qtd * p.preco_compra
             }
         }
     }
@@ -423,24 +423,22 @@ data class InfoBusca(
     val relevancia: String
 )
 
-fun buscaQuantidadeNoEstoque(info_dt: InfoBusca, estoque_mp: MutableMap<String, InfoEstoque>): Int {
+fun buscaQuantidadeNoEstoque(infoDt: InfoBusca, estoqueMp: MutableMap<String, InfoEstoque>): Int {
 
-    return estoque_mp.values.filter{ it.prod.atendeAosCriterios(info_dt) }.sumOf { it.qtd }
+    return estoqueMp.values.filter{ it.prod.atendeAosCriterios(infoDt) }.sumOf { it.qtd }
 }
 
-fun realizaBusca(inPath: String, outPath: String, estoque_mp: MutableMap<String, InfoEstoque>) {
-    var qtdBuscas = mutableListOf<Int>()
+fun realizaBusca(inPath: String, outPath: String, estoqueMp: MutableMap<String, InfoEstoque>) {
+    val qtdBuscas = mutableListOf<Int>()
 
-    val buscasFile = File(inPath + "/busca.csv")
+    val buscasFile = File("$inPath/busca.csv")
 
     buscasFile.bufferedReader().useLines { lines ->
-        var lineCount = 0
-
         lines.drop(1).forEach { line ->
             var values = line.split(',')
             values = values.map { it.uppercase() }
 
-            val info_dt = InfoBusca(
+            val infoDt = InfoBusca(
                 values[0],
                 values[1],
                 values[2],
@@ -452,12 +450,12 @@ fun realizaBusca(inPath: String, outPath: String, estoque_mp: MutableMap<String,
                 values[8]
             )
 
-            val qtd = buscaQuantidadeNoEstoque(info_dt, estoque_mp)
+            val qtd = buscaQuantidadeNoEstoque(infoDt, estoqueMp)
             qtdBuscas.add(qtd)
         }
     }
 
-    val resultadoFile = File(outPath + "/resultado_buscas.csv")
+    val resultadoFile = File("$outPath/resultado_buscas.csv")
     resultadoFile.createNewFile()
 
     resultadoFile.printWriter().use { writer ->
@@ -471,24 +469,25 @@ fun realizaBusca(inPath: String, outPath: String, estoque_mp: MutableMap<String,
 }
 
 fun main(args: Array<String>) {
-    var estoque_mp = mutableMapOf<String, InfoEstoque>()
-    var balancete_dt = InfoBalancete(0.0, 0.0, 0.0)
+    val estoqueMp = mutableMapOf<String, InfoEstoque>()
+    val balanceteDt = InfoBalancete(0.0, 0.0, 0.0)
+
 //    var inPath = args[0]
 //    var outPath = args[1]
 
-    var inPath = "/home/leticia/Desktop/Trab-Mobile/Testes/exemplo_1/entrada"
-    var outPath = "/home/leticia/Desktop/Trab-Mobile/Testes/exemplo_1/minha_saida"
+    val inPath = "/home/leticia/Desktop/Trab-Mobile/Testes/exemplo_1/entrada"
+    val outPath = "/home/leticia/Desktop/Trab-Mobile/Testes/exemplo_1/minha_saida"
 
-    leCompras(inPath, estoque_mp, balancete_dt)
-    leVendas(inPath, estoque_mp, balancete_dt)
+    leCompras(inPath, estoqueMp, balanceteDt)
+    leVendas(inPath, estoqueMp, balanceteDt)
 
-    for(value in estoque_mp.values){
+    for(value in estoqueMp.values){
         println(value)
     }
 
-    geraEstoqueGeral(outPath, estoque_mp)
-    geraEstoqueCategorias(outPath, estoque_mp)
-    geraBalancete(outPath, balancete_dt)
+    geraEstoqueGeral(outPath, estoqueMp)
+    geraEstoqueCategorias(outPath, estoqueMp)
+    geraBalancete(outPath, balanceteDt)
 
-    realizaBusca(inPath, outPath, estoque_mp)
+    realizaBusca(inPath, outPath, estoqueMp)
 }
